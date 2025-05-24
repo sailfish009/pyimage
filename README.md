@@ -1,7 +1,7 @@
 # pyimage
 Simple Image Viewer 
 
-This is an image viewer implemented with dearpygui.
+This is an image viewer implemented with [dearpygui](https://github.com/hoffstadt/DearPyGui).
 
 
 

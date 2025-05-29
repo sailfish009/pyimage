@@ -36,9 +36,16 @@ def load_image_data(file_path):
 
 dpg.create_context()
 
-RECT_COORDS = {"p1": [50.0, 50.0], "p2": [200.0, 200.0]}
+RECT_COORDS = {"p1": [0.0, 0.0], "p2": [0.0, 0.0]}
 RESIZE_ACTIVE = [True]
 RESIZE_THRESHOLD = 10.0
+
+with dpg.theme() as button_theme:
+  with dpg.theme_component(dpg.mvButton):
+    dpg.add_theme_color(dpg.mvThemeCol_Button, (100, 150, 250, 255))        # Normal color
+    dpg.add_theme_color(dpg.mvThemeCol_ButtonHovered, (120, 170, 255, 255)) # Hovered color
+    dpg.add_theme_color(dpg.mvThemeCol_ButtonActive, (80, 130, 220, 255))   # Active/pressed color
+    dpg.add_theme_color(dpg.mvThemeCol_Text, (255, 255, 255, 255))          # Text color
 
 def load_image_window(file_path):
   global TEXTURE_TAG, IMAGE_TAG, LIST_TAG, RECT_COORDS
@@ -49,8 +56,6 @@ def load_image_window(file_path):
     with dpg.texture_registry():
       dpg.add_static_texture(width=IMAGE_SIZE, height=IMAGE_SIZE, default_value=image_data, tag=TEXTURE_TAG)    
 
-    dpg.delete_item(LIST_TAG)
-    LIST_TAG = dpg.generate_uuid()
     dpg.delete_item(IMAGE_TAG)
     IMAGE_TAG = dpg.generate_uuid()
 
@@ -64,19 +69,22 @@ def load_image_window(file_path):
 
     dpg.set_axis_limits("X Axis", 0, IMAGE_SIZE)
     dpg.set_axis_limits("Y Axis", 0, IMAGE_SIZE)
-    files = ['_']
-    files.extend([f for f in os.listdir('.') if os.path.isfile(f) and f.lower().endswith(('.png', '.jpg', '.jpeg'))])
-    dpg.add_listbox(files, parent=WINDOW_TAG1, pos=[NEW_SIZE+10,20], tag=LIST_TAG, width=300, num_items=41, callback=listbox_callback)
-
 
 def listbox_callback(sender, app_data):
-  print(f"sender is: {sender}")
-  print(f"app_data is: {app_data}")
   load_image_window(app_data)
+  
+def move_callback(sender, app_data):
+  global RESIZE_ACTIVE
+  RESIZE_ACTIVE[0] = False
+   
+def size_callback(sender, app_data):
+  global RESIZE_ACTIVE
+  RESIZE_ACTIVE[0] = True
 
 def update_rectangle(sender, app_data):
-  mouse_pos = dpg.get_plot_mouse_pos()
-  if  dpg.is_mouse_button_down(dpg.mvMouseButton_Left):
+  global RESIZE_ACTIVE, IMAGE_TAG
+  if  dpg.is_item_hovered(IMAGE_TAG) and dpg.is_mouse_button_down(dpg.mvMouseButton_Left):
+    mouse_pos = dpg.get_plot_mouse_pos()
     if RESIZE_ACTIVE[0]: 
       dist = ((mouse_pos[0] - RECT_COORDS["p2"][0]) ** 2 + (mouse_pos[1] - RECT_COORDS["p2"][1]) ** 2) ** 0.5
       if dist < RESIZE_THRESHOLD :
@@ -101,7 +109,7 @@ with dpg.texture_registry(show=True):
 with dpg.handler_registry():
   dpg.add_mouse_down_handler(callback=update_rectangle, button=dpg.mvMouseButton_Left)
 
-with dpg.window(tag=WINDOW_TAG1, pos=[0,0],width=PROGRAM_W, height=PROGRAM_H):
+with dpg.window(tag=WINDOW_TAG1, pos=[0,0],width=PROGRAM_W, height=PROGRAM_H, no_move=True):
   with dpg.plot(height=NEW_SIZE, width=NEW_SIZE, tag=IMAGE_TAG):
     dpg.add_plot_axis(dpg.mvXAxis, tag="X Axis")
     with dpg.plot_axis(dpg.mvYAxis, tag="Y Axis", invert=True):
@@ -115,6 +123,11 @@ with dpg.window(tag=WINDOW_TAG1, pos=[0,0],width=PROGRAM_W, height=PROGRAM_H):
   files = ['_']
   files.extend([f for f in os.listdir('.') if os.path.isfile(f) and f.lower().endswith(('.png', '.jpg', '.jpeg'))])
   dpg.add_listbox(files, tag=LIST_TAG, pos=[NEW_SIZE+10,20], width=300, num_items=41, callback=listbox_callback)
+  
+  move_btn = dpg.add_button(label="MOVE", pos=[10, NEW_SIZE+30], callback=move_callback)
+  size_btn = dpg.add_button(label="SIZE", pos=[50, NEW_SIZE+30], callback=size_callback)
+  dpg.bind_item_theme(move_btn, button_theme)
+  dpg.bind_item_theme(size_btn, button_theme)
 
 dpg.create_viewport(title=PROGRAM_TITLE, x_pos=0, y_pos=0, width=PROGRAM_W, height=PROGRAM_H)
 dpg.setup_dearpygui()
